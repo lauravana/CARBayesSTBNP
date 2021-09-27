@@ -33,19 +33,15 @@ build_Q_sparse <- function(n1, n2, rho){
 #' @param harmonic boolean indicating whether the covariates are 
 #'   harmonic = TRUE or normal harmonic = FALSE
 #' @param freq frequencies for the harmonic covariates if harmonic = TRUE
-#' @param hyperparameters_P0 list containing the hyperparameters for the ANOVA DPP
 #' @param seed the seed used in the simulation
 #' @param long boolean indicating whether a long data set should be provided
-#' @param dummy_phit_lev integer indicating how many dummies we want to have: 1 - np effect, 2 - weekend/workday effect, 3 - weekend/workday/night effect
 
 simulate_spatio_temporal_model <- function(n1, n2, N, J, K = NULL,
                                            betas = NULL, xi = NULL,
                                            rho, tau2, sig2, 
                                            harmonic = TRUE, 
                                            sampleBeta0BNP = TRUE,
-                                           freq = c(7, 7 * 2), 
-                                           hyperparameters_P0 = NULL,
-                                           dummy_phit_lev = 1L,
+                                           freq = NULL, 
                                            tau2.delta = 0,
                                            seed = 123,
                                            long = TRUE) {
@@ -59,66 +55,48 @@ simulate_spatio_temporal_model <- function(n1, n2, N, J, K = NULL,
   ######## FIXING THE PARAMETERS & CHECKS ##########
   ##################################################
   I <- n1 * n2 ## number of areal units in the grid
-  
+
+  if (!is.null(betas) && nrow(betas) != J) stop("Number of rows in betas does not match number of clusters J.")
   if (is.null(K) & !harmonic) stop("Number of normal covariates missing.")
   
-  if (harmonic) K <- 2 * length(freq) * dummy_phit_lev 
+  # Build regression covariates
+  if (harmonic) {
+    if (is.null(freq)) freq <- 7 * 1:2
+    omega <- 2 * pi * freq/N ## periodicity of time series
+    H <- lapply(omega, function(x)
+      cbind(cos(x * seq_len(N)),
+            sin(x * seq_len(N))))
+    H <- do.call("cbind", H)
+  } else {
+    H <- cbind(matrix(rnorm(N * K), ncol = K))  ### simulated generic covariates
+  }
+  if (sampleBeta0BNP) H <- cbind(1, H)
+  K <- ncol(H)
   
-  if (!is.null(betas) && nrow(betas) != J) stop("Number of rows in betas does not match number of clusters J.")
+
   if (!is.null(xi)) {
-    if(length(xi) == 1)  xi <- rep(xi, J)#stop("Number of xi's does not match number of clusters J.")
-  } 
+    if(length(xi) == 1)  xi <- rep(xi, J)
+  } else {
+    xi <- round(runif(J, 0.1, 0.9), 2)
+  }
   
   if (is.null(betas)) {
-    betas <- round(rmvnorm(J, 
-                           hyperparameters_P0$mu_beta, 
-                           hyperparameters_P0$Sigma_beta), 2)
+    betas <- round(matrix(rnorm(K * J), nrow = J), 2)
   } 
-  if (is.null(xi)) {
-    xi <- runif(J, hyperparameters_P0$alpha_xi, hyperparameters_P0$beta_xi)
-  }
   ######################
   #### Simulation ######
   ######################
   # 1) Build the sparse Q matrix
   WQ <- build_Q_sparse(n1, n2, rho = rho)
   
-  ### write the contiguity matrix W to a .txt
-  write.table(as.matrix(WQ$W),
-              file = sprintf("adj_matrix_n1_%i_n2_%i_T_%i.csv", 
-                             n1, n2, N),
-              row.names = FALSE, col.names = FALSE)
-  
-  # 2) build the regression covariates
-  if (harmonic) {
-    omega <- 2 * pi * freq/N ## periodicity of time series
-    H <- lapply(omega, function(x)
-      cbind(cos(x * seq_len(N)),
-            sin(x * seq_len(N))))
-    H <- do.call("cbind", H)
-    ## add intercept
-    H <- cbind((H))
-  } else {
-    H <- cbind(matrix(rnorm(N * K), ncol= K))  ### simulated generic covariates
-  }
-  
-  ## dummy: daytime work, daytime weekend, night
-  if (dummy_phit_lev == 1) {
-    G <-  H
-  }
-  if (dummy_phit_lev == 2) {
-    id_stamps <- as.POSIXct("2013-11-03 00:00:00") + (0 : (N - 1)) * (10 * 60)
-    dummy_phit <- ifelse(grepl("+S", weekdays(id_stamps)), "Dayweekend", "Daywork")
-    G <- model.matrix(~ 0 + H:factor(dummy_phit))
-  }
-  
+
   # 3) sample an allocation vector of length I, which takes values in 1:J
   s <- sample(seq_len(J), I, replace = TRUE, p = 1:J/sum(1:J))
   xi.tot <- xi[s]
   betas.tot <- betas[s, ]
-  if (sampleBeta0BNP) beta0 <- 0 else   beta0 <- 3
+  beta0 <- if (sampleBeta0BNP) 0 else 3
   # 4) compute the expected matrix
-  Hbeta <- beta0 + tcrossprod(betas.tot[,1:ncol(G)],G)
+  Hbeta <- beta0 + tcrossprod(betas.tot[, 1:ncol(H)], H)
   
   # 5) now we need to sample the spatio temporal random effects w_it
   delta <- rnorm(I, 0, sqrt(tau2.delta))
@@ -138,16 +116,20 @@ simulate_spatio_temporal_model <- function(n1, n2, N, J, K = NULL,
   # 7) put it all together for the observations
   y.matrix <- Hbeta + random.effects.matrix + delta.mat + y.errors
   
+  ## RETURN
+  ## Parameters
+  params <-  list(s = s, betas = betas, xi = xi, W = as.matrix(WQ$W))
+  
   ### make data in long format
   if (long) {
-    Xmat <- do.call("rbind", rep(list(G), I))
+    if (sampleBeta0BNP) H  <-  H[,-1]
+    Xmat <- do.call("rbind", rep(list(H), I))
     t_id <- rep(1:N, I)
-    
     df <- data.frame(y = c(y.matrix), Xmat[order(t_id), ],
                      area_id = rep(1:I, N), time_id = t_id[order(t_id)])
-
-    return(list(data = df, params = list(s = s, betas = betas, xi = xi)))
+    out <- list(data = df, params = params)
   } else {
-    return(list(data = list(y.matrix, G),  params = list(s = s, betas = betas, xi = xi)))
+    out <- list(data = list(y.matrix, H),  params = params)
   }
+  return(out)
 }

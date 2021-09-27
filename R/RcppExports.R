@@ -249,7 +249,3 @@ binomialcouplingAllupdate <- function(nsites, K, p, w, offset, beta, gamma, lamb
     .Call(`_CARBayesSTBNP_binomialcouplingAllupdate`, nsites, K, p, w, offset, beta, gamma, lambda, phi, rho, tau2, Wtripletsum, Wtriplet, Wbegfin, y, failures, prior_meanbeta, prior_varbeta, prior_meantrends, prior_vartrends, prior_lambda, prior_tau2, swap, temps, begin, Ntrends, TrendSel)
 }
 
-rcpp_hello_world <- function() {
-    .Call(`_CARBayesSTBNP_rcpp_hello_world`)
-}
-
