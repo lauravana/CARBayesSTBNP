@@ -41,7 +41,6 @@ niter  <- 1000
 burnin <- 500
 thin   <- 1
 
-
 ####################
 ### CARar model
 ####################
@@ -75,7 +74,7 @@ table(clobj$cl, params$s)
 m_car_ar_bnp_2 <- CARBayesSTBNP::ST.CARar(formula, data = df, W = W, family = "gaussian",
                                         n.sample = niter, burnin = burnin, thin = thin, 
                                         sampleBeta = "BNP", 
-                                        ## the time-persistence is also sampled with BNP
+                                        ## the time-persistence is common for all areas
                                         sampleBNPgamma = FALSE,
                                         sampleBeta0BNP = FALSE
 )
