@@ -95,6 +95,7 @@ simulate_spatio_temporal_model <- function(n1, n2, N, J, K = NULL,
   xi.tot <- xi[s]
   betas.tot <- betas[s, ]
   beta0 <- if (sampleBeta0BNP) 0 else 3
+  
   # 4) compute the expected matrix
   Hbeta <- beta0 + tcrossprod(betas.tot[, 1:ncol(H)], H)
   

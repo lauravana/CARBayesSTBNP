@@ -48,12 +48,11 @@ gaussian.CARar <- function(formula, data=NULL, W, W.islands=NULL, burnin, n.samp
   if (is.null(N_aux)) N_aux <- 50
   
   #### Check on the rho arguments
-  if(is.null(rho.S))
-  {
+  if(is.null(rho.S)) 
+    {
     rho <- runif(1, 0, 0.9)
     fix.rho.S <- FALSE   
-  }else
-  {
+  } else {
     rho <- rho.S
     fix.rho.S <- TRUE
   }
@@ -260,7 +259,6 @@ gaussian.CARar <- function(formula, data=NULL, W, W.islands=NULL, burnin, n.samp
       regression.mat <- matrix(X %*% beta, nrow=K, ncol=N, byrow=FALSE)
     }
     if (sampleBeta == "BNP") {
-      Sys.time()
       out_BNP <- sample_BNP(y = Y.DA.mat, Xl = X, X = X.array, 
                             w = phi.mat, offset = offset.mat, beta0=beta0,  s = s_alloc, 
                             beta = beta.mat, sig2 = nu2, tau2=tau2, 
@@ -268,7 +266,6 @@ gaussian.CARar <- function(formula, data=NULL, W, W.islands=NULL, burnin, n.samp
                             rho = rho,
                             alpha = alpha_BNP, N_aux=N_aux,
                             hyperparameters_P0 = hyperparameters_P0)
-      Sys.time()
       betavec <- out_BNP$beta
       s_alloc <-  out_BNP$s
       J <- length(unique(s_alloc))

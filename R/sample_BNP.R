@@ -12,7 +12,6 @@ sample_BNP <- function(y, Xl, X, w, offset, beta0, s,
   N <- dim(y)[2]
   p <- dim(X)[3]
   J <- length(unique(s))
-  print(J)
   nj <- unname(table(s))
   # y_w_X <- lapply(1:I, function(i) (beta.offset[i, ])%*% X[i, ,])
   if (!is.null(xi)) {

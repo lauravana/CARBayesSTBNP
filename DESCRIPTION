@@ -1,11 +1,11 @@
 Package: CARBayesSTBNP
 Type: Package
 Title: Bayesian spatio-temporal for areal data with normal and BNP priors on regression coefficients
-Version: 0.0-1
-Date: 2021-02-08
+Version: 0.0-2
+Date: 2024-02-13
 Author: Laura Vana
-Maintainer: Laura Vana <lvana@wu.ac.at>
-Description: Bayesian spatio-temporal for areal data with normal and BNP priors on regression coefficients. Adapted from the CARBayesST package and from Cadonna et al (2019)
+Maintainer: Laura Vana <laura.vana.guer@tuwien.ac.at>
+Description: Bayesian spatio-temporal for areal data with normal and BNP priors on regression coefficients. Add-on to the CARBayesST package. Implementation of the BNP sampler is adapted from Cadonna et al (2019)
 License: GPL (>= 2)
-Imports: Rcpp (>= 1.0.5), MASS
+Imports: gtools, MASS, mvnfast, Rcpp (>= 1.0.5), truncdist, truncnorm
 LinkingTo: Rcpp
